@@ -1,26 +1,14 @@
-# 🖤🛣️ BlackRoad Metaverse Builder
+# BlackRoad Metaverse Builder
 
-Part of the BlackRoad Product Empire - 350+ enterprise solutions
+Create and deploy virtual worlds and metaverse experiences.
 
-## 🚀 Quick Start
+## Features
+- **World Editor** - 3D environment creation
+- **Avatar System** - Customizable avatars
+- **Multiplayer** - Real-time social interaction
+- **Economy** - Virtual currency and NFTs
+- **Events** - Host virtual gatherings
+- **Cross-Platform** - VR, desktop, mobile
 
-```bash
-./blackroad-metaverse-builder.sh
-```
-
-## 🎨 BlackRoad Design System
-
-- **Hot Pink**: #FF1D6C
-- **Amber**: #F5A623  
-- **Electric Blue**: #2979FF
-- **Violet**: #9C27B0
-
-## 📚 Documentation
-
-Full docs: https://docs.blackroad.io
-
-## 🖤 BlackRoad Empire
-
-Part of 350+ products across 46 categories. Built with ∞ vision.
-
-**BlackRoad OS, Inc.** | Built with Claude
+## License
+Copyright (c) 2026 BlackRoad OS, Inc. Proprietary software.
