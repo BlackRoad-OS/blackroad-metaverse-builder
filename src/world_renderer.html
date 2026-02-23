@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MetaverseBuilder - World Renderer</title>
+    <style>
+        body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
+        #canvas { display: block; }
+        #info { position: absolute; top: 10px; left: 10px; color: #fff; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 5px; z-index: 10; }
+        #info h2 { margin: 0 0 5px 0; }
+        #info p { margin: 2px 0; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <h2>MetaverseBuilder</h2>
+        <p>Drag to rotate | Scroll to zoom</p>
+        <p id="coords">Position: 0, 0, 0</p>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const worldId = params.get('world') || 'default';
+        const worldData = {
+            name: 'Nova City',
+            theme: 'cyberpunk',
+            objects: [
+                {id: 'b0', type: 'building', name: 'Tower 1', position: {x: 100, y: 50, z: 100}, scale: 20, color: '#FF00FF'},
+                {id: 'b1', type: 'building', name: 'Tower 2', position: {x: 300, y: 50, z: 200}, scale: 15, color: '#00FFFF'},
+                {id: 't0', type: 'tree', name: 'Tree 1', position: {x: 150, y: 10, z: 150}, scale: 5, color: '#00FF00'},
+                {id: 'l0', type: 'light', name: 'Light 1', position: {x: 200, y: 100, z: 200}, scale: 2, color: '#FFFF00'}
+            ]
+        };
+
+        let scene, camera, renderer, controls = {};
+
+        function initScene() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x1a1a2e);
+            scene.fog = new THREE.Fog(0x1a1a2e, 1000, 5000);
+
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
+            camera.position.set(500, 300, 500);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            document.body.appendChild(renderer.domElement);
+
+            // Lights
+            const ambLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambLight);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(500, 500, 500);
+            dirLight.castShadow = true;
+            scene.add(dirLight);
+
+            // Grid helper
+            const grid = new THREE.GridHelper(1000, 20, 0x444444, 0x222222);
+            scene.add(grid);
+
+            // Create objects
+            worldData.objects.forEach(obj => createObject(obj));
+
+            // Orbit controls (simplified)
+            setupControls();
+
+            // Handle window resize
+            window.addEventListener('resize', onWindowResize);
+
+            animate();
+        }
+
+        function createObject(obj) {
+            let geometry, material;
+            const color = new THREE.Color(obj.color || '#FFFFFF');
+
+            if (obj.type === 'building') {
+                geometry = new THREE.BoxGeometry(obj.scale, obj.scale * 2, obj.scale);
+            } else if (obj.type === 'tree') {
+                geometry = new THREE.ConeGeometry(obj.scale / 2, obj.scale * 3, 8);
+            } else if (obj.type === 'light') {
+                geometry = new THREE.SphereGeometry(obj.scale, 16, 16);
+            } else {
+                geometry = new THREE.BoxGeometry(obj.scale, obj.scale, obj.scale);
+            }
+
+            material = new THREE.MeshPhongMaterial({ color: color });
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.position.set(obj.position.x, obj.position.y, obj.position.z);
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            mesh.userData = obj;
+            scene.add(mesh);
+        }
+
+        function setupControls() {
+            let isDragging = false, prevX, prevY;
+            let rotX = 0, rotY = 0;
+
+            renderer.domElement.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                prevX = e.clientX;
+                prevY = e.clientY;
+            });
+
+            renderer.domElement.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                const deltaX = e.clientX - prevX;
+                const deltaY = e.clientY - prevY;
+                rotY += deltaX * 0.01;
+                rotX += deltaY * 0.01;
+                prevX = e.clientX;
+                prevY = e.clientY;
+
+                const rad = Math.atan2(camera.position.z, camera.position.x);
+                const dist = Math.sqrt(camera.position.x ** 2 + camera.position.z ** 2);
+                camera.position.x = Math.cos(rad + rotY) * dist;
+                camera.position.z = Math.sin(rad + rotY) * dist;
+                camera.position.y += deltaY * 0.5;
+                camera.lookAt(scene.position);
+            });
+
+            renderer.domElement.addEventListener('mouseup', () => {
+                isDragging = false;
+            });
+
+            renderer.domElement.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const dir = new THREE.Vector3().subVectors(camera.position, scene.position).normalize();
+                const dist = camera.position.distanceTo(scene.position);
+                const newDist = dist + (e.deltaY > 0 ? 50 : -50);
+                camera.position.copy(dir.multiplyScalar(newDist).add(scene.position));
+                camera.lookAt(scene.position);
+            }, false);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function updateCoords() {
+            const coords = document.getElementById('coords');
+            coords.textContent = `Position: ${Math.round(camera.position.x)}, ${Math.round(camera.position.y)}, ${Math.round(camera.position.z)}`;
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            updateCoords();
+            renderer.render(scene, camera);
+        }
+
+        initScene();
+    </script>
+</body>
+</html>
